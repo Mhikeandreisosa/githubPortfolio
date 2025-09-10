@@ -1,0 +1,247 @@
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(const MyApp());
+}
+
+/// Reusable vertical spacer
+class VSpacer extends StatelessWidget {
+  final double height;
+  const VSpacer(this.height, {Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) => SizedBox(height: height);
+}
+
+/// Reusable title widget
+Widget createTitle(String text, {Color color = Colors.blue, double fontSize = 28}) {
+  return Text(
+    text,
+    style: TextStyle(
+      fontSize: fontSize,
+      fontWeight: FontWeight.bold,
+      color: color,
+    ),
+    textAlign: TextAlign.center,
+  );
+}
+
+/// Reusable subtitle widget
+Widget createSubtitle(String text, {Color color = Colors.white70, double fontSize = 20}) {
+  return Text(
+    text,
+    style: TextStyle(
+      fontSize: fontSize,
+      color: color,
+    ),
+    textAlign: TextAlign.center,
+  );
+}
+
+/// Reusable text field
+Widget createTextField({
+  required TextEditingController controller,
+  required String label,
+  TextInputType keyboardType = TextInputType.text,
+}) {
+  return TextField(
+    controller: controller,
+    keyboardType: keyboardType,
+    decoration: InputDecoration(
+      labelText: label,
+      border: const OutlineInputBorder(),
+    ),
+  );
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context){
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData.dark(),
+      home: const HomePage(),
+    );
+  }
+}
+
+class HomePage extends StatefulWidget {
+  const HomePage({Key? key}) : super(key: key);
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final TextEditingController firstNameController = TextEditingController();
+  final TextEditingController lastNameController = TextEditingController();
+  final TextEditingController numberController = TextEditingController();
+
+  List<Map<String, String>> userList = [];
+
+  void addToList() {
+    if (firstNameController.text.isNotEmpty &&
+        lastNameController.text.isNotEmpty &&
+        numberController.text.isNotEmpty) {
+      setState(() {
+        userList.add({
+          'name': '${firstNameController.text} ${lastNameController.text}',
+          'number': numberController.text,
+        });
+        firstNameController.clear();
+        lastNameController.clear();
+        numberController.clear();
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill out all fields')),
+      );
+    }
+  }
+
+  void deleteItem(int index) {
+    setState(() {
+      userList.removeAt(index);
+    });
+  }
+
+  void openProfile(Map<String, String> user) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProfilePage(user: user),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    firstNameController.dispose();
+    lastNameController.dispose();
+    numberController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              createTitle('CHCCI FLUTTER'),
+              const VSpacer(10),
+              createSubtitle('BSCS3A'),
+              const VSpacer(30),
+              createTextField(controller: firstNameController, label: 'First Name'),
+              const VSpacer(10),
+              createTextField(controller: lastNameController, label: 'Last Name'),
+              const VSpacer(10),
+              createTextField(
+                controller: numberController,
+                label: 'Number',
+                keyboardType: TextInputType.phone,
+              ),
+              const VSpacer(20),
+              ElevatedButton(
+                onPressed: addToList,
+                child: const Text('Add to List'),
+              ),
+              const VSpacer(30),
+              userList.isEmpty
+                  ? const Text('No users added yet')
+                  : ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: userList.length,
+                      itemBuilder: (context, index) {
+                        final user = userList[index];
+                        return GestureDetector(
+                          onTap: () => openProfile(user),
+                          child: Card(
+                            child: ListTile(
+                              leading: const Icon(Icons.person),
+                              title: Text(user['name'] ?? ''),
+                              subtitle: Text(user['number'] ?? ''),
+                              trailing: IconButton(
+                                icon: const Icon(Icons.delete, color: Colors.red),
+                                onPressed: () => deleteItem(index),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class ProfilePage extends StatefulWidget {
+  final Map<String, String> user;
+
+  const ProfilePage({Key? key, required this.user}) : super(key: key);
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  final TextEditingController messageController = TextEditingController();
+
+  void showAlert() {
+    final message = messageController.text.trim();
+    if (message.isNotEmpty) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Your Message'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    messageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.user['name'] ?? 'Profile')),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              createTitle(widget.user['name'] ?? '', fontSize: 24, color: Colors.white),
+              const VSpacer(30),
+              createTextField(controller: messageController, label: 'Your Message'),
+              const VSpacer(20),
+              ElevatedButton(
+                onPressed: showAlert,
+                child: const Text('Show in Alert'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
